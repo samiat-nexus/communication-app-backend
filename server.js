@@ -1,23 +1,21 @@
-// backend/server.js
+// server.js (updated)
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const mongoose = require("mongoose"); // ✅ MongoDB
-const Message = require("./models/Message"); // ✅ Message Model
+const Message = require("./models/Message");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Connect to MongoDB
-mongoose.connect('mongodb+srv://SNX_admin:samiat-nexusXmongodb-atlas@snx-cluster.rkyfoss.mongodb.net/?retryWrites=true&w=majority&appName=SNX-Cluster')
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected Successfully!"))
   .catch((err) => console.log("❌ MongoDB Connection Failed:", err));
 
 const server = http.createServer(app);
-
-// ✅ Initialize Socket.io
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -25,41 +23,35 @@ const io = new Server(server, {
   }
 });
 
-// ✅ Handle Socket.io connections
+// Socket.io
 io.on("connection", (socket) => {
-  console.log("A user connected: " + socket.id);
+  console.log("A user connected:", socket.id);
 
-  // Listen for messages from clients
+  // Send existing chat history
+  Message.find().then(messages => {
+    socket.emit("chat_history", messages);
+  });
+
+  // Receive and save new message
   socket.on("send_message", async (data) => {
-    console.log("💬 Message Received:", data);
+    const newMessage = new Message({
+      sender: data.sender,
+      text: data.text,
+    });
+    await newMessage.save();
 
-    try {
-      // ✅ Save message to MongoDB
-      const newMessage = new Message({
-        username: "User", // later this will be dynamic
-        text: data,
-        timestamp: new Date()
-      });
-      await newMessage.save();
-      console.log("📦 Message Saved to Database");
-
-      // ✅ Broadcast the message to all other connected clients
-      socket.broadcast.emit("receive_message", data);
-    } catch (error) {
-      console.error("❌ Error saving message:", error);
-    }
+    io.emit("receive_message", newMessage);
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected: " + socket.id);
+    console.log("User disconnected:", socket.id);
   });
 });
 
-// ✅ Simple test route
+// Route
 app.get("/", (req, res) => {
-  res.send("Server is running!");
+  res.send("Server is running with chat history ✅");
 });
 
-// ✅ Start server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
