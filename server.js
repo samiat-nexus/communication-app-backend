@@ -12,7 +12,7 @@ const server = http.createServer(app);
 
 // === Middleware ===
 app.use(express.json());
-app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/auth", require("/authRoutes"));
 app.use(cors({    
   origin: process.env.CLIENT_URL || '*',
   methods: ['GET', 'POST'],
