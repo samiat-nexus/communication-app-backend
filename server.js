@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.mongodb+srv://SNX_admin:samiat-nexusXmongodb-atlas@snx-cluster.rkyfoss.mongodb.net/?retryWrites=true&w=majority&appName=SNX-Cluster)
   .then(() => console.log("✅ MongoDB Connected Successfully!"))
   .catch((err) => console.log("❌ MongoDB Connection Failed:", err));
 
