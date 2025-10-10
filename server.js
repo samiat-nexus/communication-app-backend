@@ -14,8 +14,6 @@ app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/communicationApp';
 
 mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
 })
   .then(() => console.log('✅ MongoDB Connected Successfully!'))
   .catch(err => {
