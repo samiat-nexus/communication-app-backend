@@ -28,7 +28,7 @@ mongoose.connect(MONGO_URI)
 // === Message model (fallback safe mode) ===
 let Message;
 try {
-  Message = require('./models/Message');
+  Message = require('./Message');
 } catch {
   const messageSchema = new mongoose.Schema({
     sender: { type: String, default: 'Anonymous' },
