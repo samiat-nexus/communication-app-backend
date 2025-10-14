@@ -10,6 +10,11 @@ router.post("/signup", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -26,18 +31,18 @@ router.post("/signup", async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "defaultsecret",
       { expiresIn: "7d" }
     );
 
-    res.json({
+    res.status(201).json({
       message: "Signup successful",
       token,
       user: { id: newUser._id, email: newUser.email },
     });
   } catch (err) {
-    console.error("Signup error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Signup error:", err);
+    res.status(500).json({ message: "Server error during signup" });
   }
 });
 
@@ -46,8 +51,12 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
@@ -55,7 +64,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "defaultsecret",
       { expiresIn: "7d" }
     );
 
@@ -65,8 +74,8 @@ router.post("/login", async (req, res) => {
       user: { id: user._id, email: user.email },
     });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Login error:", err);
+    res.status(500).json({ message: "Server error during login" });
   }
 });
 
