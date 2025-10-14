@@ -45,7 +45,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Connection Failed:", err.message));
 
 // === Auth Routes ===
-app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/auth", require("./authRoutes"));
 
 // === Message model (safe fallback) ===
 let Message;
