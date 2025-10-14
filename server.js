@@ -6,23 +6,18 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const { Server } = require("socket.io");
 
-// === App setup ===
 const app = express();
 const server = http.createServer(app);
 
-// === Middleware ===
-app.use(express.json());
-
-// === ✅ Advanced CORS Configuration ===
+// === Middleware: CORS first, then JSON ===
 const allowedOrigins = [
-  "https://communication-app-frontend.onrender.com", // your frontend (Render)
-  "http://localhost:3000", // for local development
+  process.env.CLIENT_URL || "https://communication-app-frontend.onrender.com",
+  "http://localhost:3000",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
       if (!allowedOrigins.includes(origin)) {
         const msg = `CORS policy: Access from origin ${origin} not allowed`;
@@ -35,6 +30,8 @@ app.use(
   })
 );
 
+app.use(express.json());
+
 // === MongoDB connection ===
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/communicationApp";
@@ -44,8 +41,8 @@ mongoose
   .then(() => console.log("✅ MongoDB Connected Successfully!"))
   .catch((err) => console.error("❌ MongoDB Connection Failed:", err.message));
 
-// === Auth Routes ===
-app.use("/api/auth", require("./authRoutes"));
+// === Routes: ensure correct path to routes folder ===
+app.use("/api/auth", require("./routes/authRoutes")); // <<-- IMPORTANT: routes path
 
 // === Message model (safe fallback) ===
 let Message;
@@ -116,14 +113,4 @@ const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Allowed Origins: ${allowedOrigins.join(", ")}`);
-});
-
-// === Graceful shutdown ===
-process.on("SIGINT", async () => {
-  console.log("🛑 SIGINT received. Shutting down gracefully...");
-  await mongoose.disconnect();
-  server.close(() => {
-    console.log("Server closed.");
-    process.exit(0);
-  });
 });
