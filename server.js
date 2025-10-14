@@ -42,7 +42,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Connection Failed:", err.message));
 
 // === Routes: ensure correct path to routes folder ===
-app.use("/api/auth", require("./routes/authRoutes")); // <<-- IMPORTANT: routes path
+app.use("/api/auth", require("./authRoutes")); // <<-- IMPORTANT: routes path
 
 // === Message model (safe fallback) ===
 let Message;
