@@ -3,8 +3,8 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("./models/user");
-const authMiddleware = require("./middleware/authMiddleware"); 
+const User = require("../models/user");
+const authMiddleware = require("../middleware/authMiddleware");
 
 // === SIGNUP ===
 router.post("/signup", async (req, res) => {
@@ -22,7 +22,7 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // 3️⃣ Create new user (password will be hashed by pre-save hook in User model)
+    // 3️⃣ Create new user
     const newUser = new User({ email, password, name: name || "Anonymous" });
     await newUser.save();
 
@@ -98,5 +98,59 @@ router.get("/me", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error fetching user info" });
   }
 });
+
+// ===========================
+// ✅ PROFILE ROUTES START HERE
+// ===========================
+
+// Middleware to verify JWT manually
+function verifyToken(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "No token provided" });
+
+  jwt.verify(token, process.env.JWT_SECRET || "defaultsecret", (err, decoded) => {
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.userId = decoded.id;
+    next();
+  });
+}
+
+// === GET /api/auth/profile ===
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    console.error("❌ Profile fetch error:", err);
+    res.status(500).json({ message: "Failed to load profile" });
+  }
+});
+
+// === PUT /api/auth/profile ===
+router.put("/profile", verifyToken, async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { name, avatar },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("❌ Profile update error:", err);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+});
+
+// ===========================
+// ✅ PROFILE ROUTES END HERE
+// ===========================
 
 module.exports = router;
