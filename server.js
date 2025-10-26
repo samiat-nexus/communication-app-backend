@@ -9,7 +9,7 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 
-// === Middleware: CORS first, then JSON ===
+// ====== CORS CONFIG ======
 const allowedOrigins = [
   process.env.CLIENT_URL || "https://communication-app-frontend.onrender.com",
   "http://localhost:3000",
@@ -19,11 +19,8 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (!allowedOrigins.includes(origin)) {
-        const msg = `CORS policy: Access from origin ${origin} not allowed`;
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS not allowed"), false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -32,32 +29,30 @@ app.use(
 
 app.use(express.json());
 
-// === MongoDB connection ===
+// ====== MongoDB Connection ======
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/communicationApp";
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected Successfully!"))
-  .catch((err) => console.error("❌ MongoDB Connection Failed:", err.message));
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Error:", err.message));
 
-// === Routes: ensure correct path to routes folder ===
-app.use("/api/auth", require("./authRoutes")); // <<-- IMPORTANT: routes path
+// ====== ROUTES ======
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/profile", require("./routes/profileRoutes"));
 
-// === Message model (safe fallback) ===
-let Message;
-try {
-  Message = require("./models/Message");
-} catch {
-  const messageSchema = new mongoose.Schema({
-    sender: { type: String, default: "Anonymous" },
-    text: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
-  });
-  Message = mongoose.model("Message", messageSchema);
-}
+// ✅ TEST ROUTE (check directly in browser)
+app.get("/api/profile/test", (req, res) => {
+  res.json({ message: "✅ Profile route alive!" });
+});
 
-// === Socket.io setup ===
+// ====== Simple REST Endpoints ======
+app.get("/", (req, res) => {
+  res.send("✅ Server Running Successfully!");
+});
+
+// ====== Socket.IO ======
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -66,51 +61,14 @@ const io = new Server(server, {
   },
 });
 
-io.on("connection", async (socket) => {
-  console.log(`🟢 Client connected: ${socket.id}`);
-
-  try {
-    const messages = await Message.find().sort({ timestamp: 1 }).limit(200).lean();
-    socket.emit("chat_history", messages.map((m) => m.text));
-  } catch (err) {
-    console.error("⚠️ Failed to load chat history:", err.message);
-  }
-
-  socket.on("chat message", async (data) => {
-    try {
-      const text = typeof data === "string" ? data : data.text || "";
-      const sender = (data && data.sender) || "Anonymous";
-      const msg = await Message.create({ sender, text });
-      io.emit("chat message", msg.text);
-      console.log(`💬 ${sender}: ${msg.text}`);
-    } catch (err) {
-      console.error("❌ Error saving message:", err.message);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`🔴 Client disconnected: ${socket.id}`);
-  });
+io.on("connection", (socket) => {
+  console.log("🟢 Socket connected:", socket.id);
+  socket.on("disconnect", () => console.log("🔴 Socket disconnected:", socket.id));
 });
 
-// === REST API endpoints ===
-app.get("/", (req, res) => {
-  res.send("✅ Socket.IO Communication App Server is Running Successfully!");
-});
-
-app.get("/messages", async (req, res) => {
-  try {
-    const messages = await Message.find().sort({ timestamp: 1 }).limit(200).lean();
-    res.json(messages.map((m) => m.text));
-  } catch (err) {
-    console.error("GET /messages error:", err.message);
-    res.status(500).json({ error: "Failed to load messages" });
-  }
-});
-
-// === Start the server ===
+// ====== START SERVER ======
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(", ")}`);
+  console.log(`🌐 Allowed origins: ${allowedOrigins.join(", ")}`);
 });
