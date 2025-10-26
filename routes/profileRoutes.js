@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("./models/user");
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("./middleware/authMiddleware");
 
 // === GET PROFILE ===
 router.get("/", authMiddleware, async (req, res) => {
