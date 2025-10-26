@@ -39,7 +39,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Error:", err.message));
 
 // ====== ROUTES ======
-app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/auth", require("./authRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 
 // ✅ TEST ROUTE (check directly in browser)
