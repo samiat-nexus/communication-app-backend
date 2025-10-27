@@ -1,8 +1,8 @@
 // backend/routes/profileRoutes.js
 const express = require("express");
 const router = express.Router();
-const User = require("./models/User");
-const authMiddleware = require("./middleware/authMiddleware");
+const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 
 // === GET PROFILE ===
 router.get("/", authMiddleware, async (req, res) => {
