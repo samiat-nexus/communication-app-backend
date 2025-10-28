@@ -4,7 +4,6 @@ const router = express.Router();
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// === GET PROFILE ===
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -16,7 +15,6 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// === UPDATE PROFILE ===
 router.put("/", authMiddleware, async (req, res) => {
   try {
     const { name, avatar } = req.body;
